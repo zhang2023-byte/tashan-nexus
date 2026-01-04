@@ -394,15 +394,15 @@ app.get('/api/leaderboard', authenticateToken, (req, res) => {
   );
 });
 
-// 配置混合匹配引擎 - 禁用AI功能，使用基础关键词匹配算法
+// 配置混合匹配引擎 - 使用Qwen embedding + 高匹配度时使用DeepSeek LLM
 hybridMatching.configure({
-  useEmbedding: false,  // 禁用embedding
-  useLLM: false,        // 禁用LLM（完全回退到基础算法）
-  llmTopN: 10,
-  finalTopN: 3
+  useEmbedding: true,   // 启用embedding (使用Qwen)
+  useLLM: true,         // 启用LLM深度分析 (使用DeepSeek)
+  llmTopN: 10,          // 对Top 10候选进行LLM分析
+  finalTopN: 10         // 返回最终Top 10匹配结果
 });
 
-console.log('[配置] 已禁用AI功能，使用基础关键词匹配算法');
+console.log('[配置] 已启用混合匹配策略: Qwen Embedding + DeepSeek LLM');
 
 // 启动服务器
 app.listen(PORT, () => {

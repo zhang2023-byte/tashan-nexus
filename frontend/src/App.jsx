@@ -1,17 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { matchAPI, problemAPI, leaderboardAPI, authAPI } from './api';
+import { matchAPI, authAPI } from './api';
 
 function App() {
   const { user, login, register, logout, loading } = useAuth();
   const [view, setView] = useState('login');
   const [matches, setMatches] = useState([]);
-  const [problems, setProblems] = useState([]);
-  const [myProblems, setMyProblems] = useState([]);
-  const [leaderboard, setLeaderboard] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isLoadingMatches, setIsLoadingMatches] = useState(false);
 
   // 登录/注册表单
   const [authForm, setAuthForm] = useState({
@@ -41,14 +39,6 @@ function App() {
     looking_for: ''
   });
 
-  // 发布问题表单
-  const [problemForm, setProblemForm] = useState({
-    title: '',
-    description: '',
-    required_skills: '',
-    points_reward: 10
-  });
-
   useEffect(() => {
     if (user) {
       setView('dashboard');
@@ -58,18 +48,13 @@ function App() {
 
   const loadData = async () => {
     try {
-      const [matchesRes, problemsRes, myProblemsRes, leaderboardRes] = await Promise.all([
-        matchAPI.getMatches(),
-        problemAPI.getAll(),
-        problemAPI.getMy(),
-        leaderboardAPI.get()
-      ]);
+      setIsLoadingMatches(true);
+      const matchesRes = await matchAPI.getMatches();
       setMatches(matchesRes.data.matches || []);
-      setProblems(problemsRes.data.problems || []);
-      setMyProblems(myProblemsRes.data.problems || []);
-      setLeaderboard(leaderboardRes.data.leaderboard || []);
     } catch (err) {
       setError('加载数据失败');
+    } finally {
+      setIsLoadingMatches(false);
     }
   };
 
@@ -92,38 +77,6 @@ function App() {
       setError('');
     } catch (err) {
       setError(err.response?.data?.error || '注册失败');
-    }
-  };
-
-  const handlePublishProblem = async (e) => {
-    e.preventDefault();
-    try {
-      await problemAPI.create(problemForm);
-      setSuccess('问题发布成功！');
-      setProblemForm({ title: '', description: '', required_skills: '', points_reward: 10 });
-      loadData();
-    } catch (err) {
-      setError('发布失败');
-    }
-  };
-
-  const handleAcceptProblem = async (problemId) => {
-    try {
-      await problemAPI.accept(problemId);
-      setSuccess('成功接取问题！');
-      loadData();
-    } catch (err) {
-      setError(err.response?.data?.error || '接取失败');
-    }
-  };
-
-  const handleCompleteProblem = async (problemId) => {
-    try {
-      await problemAPI.complete(problemId);
-      setSuccess('问题已标记为完成！');
-      loadData();
-    } catch (err) {
-      setError('操作失败');
     }
   };
 
@@ -282,7 +235,7 @@ function App() {
               <textarea
                 value={authForm.interests}
                 onChange={(e) => setAuthForm({ ...authForm, interests: e.target.value })}
-                placeholder="例如：机器学习、数据分析、生物信息学"
+                placeholder="支持自然语言，例如：我对机器学习、数据分析和生物信息学很感兴趣"
               />
             </div>
             <div className="form-group">
@@ -290,7 +243,7 @@ function App() {
               <textarea
                 value={authForm.skills}
                 onChange={(e) => setAuthForm({ ...authForm, skills: e.target.value })}
-                placeholder="例如：Python编程、统计分析、实验设计"
+                placeholder="支持自然语言，例如：擅长Python编程、统计分析和实验设计"
               />
             </div>
             <div className="form-group">
@@ -307,7 +260,7 @@ function App() {
               <textarea
                 value={authForm.needs}
                 onChange={(e) => setAuthForm({ ...authForm, needs: e.target.value })}
-                placeholder="你目前遇到什么问题或需要什么帮助"
+                placeholder="支持自然语言，例如：需要生物信息学数据，希望有人指导实验设计"
               />
             </div>
             <div className="form-group">
@@ -315,7 +268,7 @@ function App() {
               <textarea
                 value={authForm.looking_for}
                 onChange={(e) => setAuthForm({ ...authForm, looking_for: e.target.value })}
-                placeholder="描述你理想的合作者"
+                placeholder="支持自然语言，例如：希望找到有生物学或医学背景的数据科学家"
               />
             </div>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>注册</button>
@@ -335,12 +288,10 @@ function App() {
         <div className="navbar-content">
           <h1>他山协会 - 学科交叉合作平台</h1>
           <nav>
-            <a href="#" onClick={() => setView('dashboard')}>我的匹配</a>
-            <a href="#" onClick={() => setView('problems')}>问题广场</a>
-            <a href="#" onClick={() => setView('my-problems')}>我的问题</a>
-            <a href="#" onClick={() => setView('publish')}>发布问题</a>
-            <a href="#" onClick={() => setView('leaderboard')}>排行榜</a>
-            <a href="#" onClick={() => setView('profile')}>个人资料</a>
+            <a href="#" onClick={() => setView('dashboard')} className={view === 'dashboard' ? 'active' : ''}>我的匹配</a>
+            <a href="#" onClick={() => setView('problems')} className={view === 'problems' ? 'active' : ''} style={{ opacity: 0.6 }}>问题广场 🚧</a>
+            <a href="#" onClick={() => setView('leaderboard')} className={view === 'leaderboard' ? 'active' : ''} style={{ opacity: 0.6 }}>排行榜 🚧</a>
+            <a href="#" onClick={() => setView('profile')} className={view === 'profile' ? 'active' : ''}>个人资料</a>
             <a href="#" onClick={logout}>退出</a>
           </nav>
         </div>
@@ -356,7 +307,6 @@ function App() {
             <div className="profile-header">
               <h2>欢迎, {user.name}!</h2>
               <p>{user.institution} · {user.major}</p>
-              <div className="profile-points">当前积分: {user.points}</div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -364,12 +314,19 @@ function App() {
               <button
                 className="btn btn-secondary"
                 onClick={loadData}
+                disabled={isLoadingMatches}
                 style={{ fontSize: '0.9rem', padding: '0.5rem 1rem' }}
               >
                 🔄 刷新匹配
               </button>
             </div>
-            {matches.length === 0 ? (
+            {isLoadingMatches ? (
+              <div className="alert alert-info">
+                🤖 AI智能匹配正在进行中，请稍候...
+                <br />
+                <small style={{ marginTop: '0.5rem', display: 'block' }}>正在使用Qwen Embedding和DeepSeek LLM进行深度分析</small>
+              </div>
+            ) : matches.length === 0 ? (
               <div className="alert alert-info">
                 系统中暂无其他用户。您可以：
                 <br />
@@ -414,137 +371,79 @@ function App() {
 
         {/* 问题广场 */}
         {view === 'problems' && (
-          <div>
-            <h2 style={{ marginBottom: '1rem' }}>问题广场</h2>
-            {problems.length === 0 ? (
-              <div className="alert alert-info">暂无问题</div>
-            ) : (
-              problems.map((problem) => (
-                <div key={problem.id} className="problem-card">
-                  <div className="problem-header">
-                    <h3 className="problem-title">{problem.title}</h3>
-                    <span className="problem-points">奖励 {problem.points_reward} 积分</span>
-                  </div>
-                  <div className="problem-meta">
-                    <span>发布者: {problem.author_name}</span>
-                    <span>发布者积分: {problem.author_points}</span>
-                    <span className={`status-badge status-${problem.status}`}>
-                      {problem.status === 'open' ? '待接取' : problem.status === 'in_progress' ? '进行中' : '已完成'}
-                    </span>
-                  </div>
-                  <p className="problem-description">{problem.description}</p>
-                  {problem.required_skills && (
-                    <div className="problem-skills">
-                      <strong>所需技能:</strong> {problem.required_skills}
-                    </div>
-                  )}
-                  {problem.status === 'open' && problem.user_id !== user.id && (
-                    <button
-                      className="btn btn-success"
-                      onClick={() => handleAcceptProblem(problem.id)}
-                    >
-                      接取任务
-                    </button>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* 我的问题 */}
-        {view === 'my-problems' && (
-          <div>
-            <h2 style={{ marginBottom: '1rem' }}>我的问题</h2>
-            {myProblems.length === 0 ? (
-              <div className="alert alert-info">你还没有发布任何问题</div>
-            ) : (
-              myProblems.map((problem) => (
-                <div key={problem.id} className="problem-card">
-                  <div className="problem-header">
-                    <h3 className="problem-title">{problem.title}</h3>
-                    <span className="problem-points">奖励 {problem.points_reward} 积分</span>
-                  </div>
-                  <div className="problem-meta">
-                    <span className={`status-badge status-${problem.status}`}>
-                      {problem.status === 'open' ? '待接取' : problem.status === 'in_progress' ? '进行中' : '已完成'}
-                    </span>
-                  </div>
-                  <p className="problem-description">{problem.description}</p>
-                  {problem.status === 'in_progress' && (
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => handleCompleteProblem(problem.id)}
-                    >
-                      标记为完成
-                    </button>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* 发布问题 */}
-        {view === 'publish' && (
-          <div className="card">
-            <h2 className="card-title">发布新问题</h2>
-            <form onSubmit={handlePublishProblem}>
-              <div className="form-group">
-                <label>问题标题 *</label>
-                <input
-                  type="text"
-                  value={problemForm.title}
-                  onChange={(e) => setProblemForm({ ...problemForm, title: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>问题描述 *</label>
-                <textarea
-                  value={problemForm.description}
-                  onChange={(e) => setProblemForm({ ...problemForm, description: e.target.value })}
-                  required
-                  rows="6"
-                />
-              </div>
-              <div className="form-group">
-                <label>所需技能</label>
-                <input
-                  type="text"
-                  value={problemForm.required_skills}
-                  onChange={(e) => setProblemForm({ ...problemForm, required_skills: e.target.value })}
-                  placeholder="例如：Python、数据分析、统计学"
-                />
-              </div>
-              <div className="form-group">
-                <label>积分奖励</label>
-                <input
-                  type="number"
-                  value={problemForm.points_reward}
-                  onChange={(e) => setProblemForm({ ...problemForm, points_reward: parseInt(e.target.value) })}
-                  min="1"
-                />
-              </div>
-              <button type="submit" className="btn btn-primary">发布问题</button>
-            </form>
+          <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🚧</div>
+            <h2 style={{ marginBottom: '1rem', color: '#666' }}>问题广场功能开发中</h2>
+            <p style={{ fontSize: '1.1rem', color: '#888', marginBottom: '2rem' }}>
+              我们正在努力开发任务发布、接取和积分奖励系统
+            </p>
+            <div style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              padding: '2rem',
+              borderRadius: '12px',
+              maxWidth: '600px',
+              margin: '0 auto'
+            }}>
+              <h3 style={{ marginBottom: '1rem' }}>即将上线的功能：</h3>
+              <ul style={{
+                textAlign: 'left',
+                lineHeight: '2',
+                listStyle: 'none',
+                padding: 0
+              }}>
+                <li>✨ 发布学术问题和合作需求</li>
+                <li>🤝 接取感兴趣的任务</li>
+                <li>🏆 完成任务获得积分奖励</li>
+                <li>💬 任务讨论和协作</li>
+              </ul>
+            </div>
+            <button
+              className="btn btn-primary"
+              onClick={() => setView('dashboard')}
+              style={{ marginTop: '2rem' }}
+            >
+              返回匹配页面
+            </button>
           </div>
         )}
 
         {/* 排行榜 */}
         {view === 'leaderboard' && (
-          <div>
-            <h2 style={{ marginBottom: '1rem' }}>积分排行榜</h2>
-            {leaderboard.map((item, index) => (
-              <div key={item.id} className="leaderboard-item">
-                <div className={`leaderboard-rank ${index < 3 ? 'top-3' : ''}`}>#{index + 1}</div>
-                <div className="leaderboard-info">
-                  <h4>{item.name}</h4>
-                  <p>{item.institution} · {item.major}</p>
-                </div>
-                <div className="leaderboard-points">{item.points} 积分</div>
-              </div>
-            ))}
+          <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🚧</div>
+            <h2 style={{ marginBottom: '1rem', color: '#666' }}>排行榜功能开发中</h2>
+            <p style={{ fontSize: '1.1rem', color: '#888', marginBottom: '2rem' }}>
+              我们正在设计积分系统和排行榜展示
+            </p>
+            <div style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              padding: '2rem',
+              borderRadius: '12px',
+              maxWidth: '600px',
+              margin: '0 auto'
+            }}>
+              <h3 style={{ marginBottom: '1rem' }}>即将上线的功能：</h3>
+              <ul style={{
+                textAlign: 'left',
+                lineHeight: '2',
+                listStyle: 'none',
+                padding: 0
+              }}>
+                <li>🏅 积分排行榜</li>
+                <li>📊 个人贡献统计</li>
+                <li>🎖️ 成就徽章系统</li>
+                <li>⭐ 用户评价和信誉</li>
+              </ul>
+            </div>
+            <button
+              className="btn btn-primary"
+              onClick={() => setView('dashboard')}
+              style={{ marginTop: '2rem' }}
+            >
+              返回匹配页面
+            </button>
           </div>
         )}
 
@@ -554,7 +453,6 @@ function App() {
             <div className="profile-header">
               <h2>{user.name}</h2>
               <p>@{user.username}</p>
-              <div className="profile-points">当前积分: {user.points}</div>
             </div>
 
             {!isEditingProfile ? (
@@ -653,11 +551,11 @@ function App() {
                   <textarea
                     value={profileForm.interests}
                     onChange={(e) => setProfileForm({ ...profileForm, interests: e.target.value })}
-                    placeholder="用空格分隔关键词，例如: 机器学习 深度学习 自然语言处理 计算机视觉"
+                    placeholder="可以使用自然语言描述，例如：我对机器学习和深度学习很感兴趣，尤其是自然语言处理和计算机视觉方向"
                     rows="3"
                   />
                   <small style={{ color: '#666', fontSize: '0.85rem' }}>
-                    提示：使用关键词而非完整句子，用空格分隔
+                    💡 提示：支持自然语言描述，AI会理解您的兴趣并进行智能匹配
                   </small>
                 </div>
                 <div className="form-group">
@@ -665,11 +563,11 @@ function App() {
                   <textarea
                     value={profileForm.skills}
                     onChange={(e) => setProfileForm({ ...profileForm, skills: e.target.value })}
-                    placeholder="用空格分隔关键词，例如: Python PyTorch TensorFlow 数据分析 算法设计"
+                    placeholder="可以使用自然语言描述，例如：熟练使用Python进行数据分析，掌握PyTorch和TensorFlow深度学习框架，有算法设计经验"
                     rows="3"
                   />
                   <small style={{ color: '#666', fontSize: '0.85rem' }}>
-                    提示：列出您擅长的技能，这将帮助系统推荐需要您帮助的人
+                    💡 提示：详细描述您的技能，AI会为您匹配需要帮助的人
                   </small>
                 </div>
                 <div className="form-group">
@@ -677,11 +575,11 @@ function App() {
                   <textarea
                     value={profileForm.needs}
                     onChange={(e) => setProfileForm({ ...profileForm, needs: e.target.value })}
-                    placeholder="用空格分隔关键词，例如: 生物信息学数据 医学图像处理 实验设计帮助"
+                    placeholder="可以使用自然语言描述，例如：需要生物信息学相关的数据集，希望有人帮助进行医学图像处理，需要实验设计方面的指导"
                     rows="3"
                   />
                   <small style={{ color: '#666', fontSize: '0.85rem' }}>
-                    提示：描述您当前需要什么帮助或资源
+                    💡 提示：清楚描述您的需求，AI会为您找到能提供帮助的人
                   </small>
                 </div>
                 <div className="form-group">
@@ -689,11 +587,11 @@ function App() {
                   <textarea
                     value={profileForm.looking_for}
                     onChange={(e) => setProfileForm({ ...profileForm, looking_for: e.target.value })}
-                    placeholder="用空格分隔关键词，例如: 生物学背景 医学专业 数据科学家 实验专家"
+                    placeholder="可以使用自然语言描述，例如：希望找到有生物学或医学背景的合作者，或者是数据科学方向的实验专家"
                     rows="3"
                   />
                   <small style={{ color: '#666', fontSize: '0.85rem' }}>
-                    提示：描述您期望找到什么背景的合作者
+                    💡 提示：描述您理想的合作者特征，AI会进行精准匹配
                   </small>
                 </div>
 

@@ -1,11 +1,11 @@
-// DeepSeek Embedding 服务
+// Qwen Embedding 服务
 const axios = require('axios');
 
 class EmbeddingService {
   constructor() {
-    this.apiKey = process.env.DEEPSEEK_API_KEY || 'sk-ab4d196871d8494a800f56912d275be2';
-    this.apiUrl = 'https://api.deepseek.com/v1/embeddings';
-    this.model = 'deepseek-embedding';
+    this.apiKey = process.env.QWEN_API_KEY || 'sk-713ebd26fdf24c7797be1cc56e99a98e';
+    this.apiUrl = 'https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings';
+    this.model = 'text-embedding-v3';
     this.cache = new Map(); // 简单内存缓存
   }
 

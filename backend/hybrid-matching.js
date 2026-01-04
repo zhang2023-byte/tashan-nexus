@@ -144,6 +144,7 @@ class HybridMatchingEngine {
     for (const match of llmMatches) {
       merged.push({
         user: match.user,
+        score: match.final_score || match.llm_score || match.embedding_score, // 前端使用的字段名
         match_score: match.final_score || match.llm_score || match.embedding_score,
         embedding_score: match.embedding_score,
         llm_score: match.llm_score,
@@ -159,6 +160,7 @@ class HybridMatchingEngine {
       if (!llmUserIds.has(match.user.id)) {
         merged.push({
           user: match.user,
+          score: match.score, // 前端使用的字段名
           match_score: match.score,
           embedding_score: match.score,
           llm_score: null,
