@@ -26,6 +26,19 @@ app.use(cors({
 }));
 app.use(bodyParser.json());
 
+// 健康检查端点
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    message: '他山协会API服务正常运行',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    hasJwtSecret: !!process.env.JWT_SECRET,
+    hasDeepSeekKey: !!process.env.DEEPSEEK_API_KEY,
+    hasQwenKey: !!process.env.QWEN_API_KEY
+  });
+});
+
 // JWT认证中间件
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -82,22 +95,38 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
 
+  console.log(`[登录] 尝试登录: ${username}`);
+
+  if (!process.env.JWT_SECRET) {
+    console.error('[登录] JWT_SECRET 未配置！');
+    return res.status(500).json({ error: '服务器配置错误，请联系管理员' });
+  }
+
   db.get('SELECT * FROM users WHERE username = ?', [username], async (err, user) => {
     if (err) {
+      console.error('[登录] 数据库查询失败:', err);
       return res.status(500).json({ error: '服务器错误' });
     }
 
     if (!user) {
+      console.log(`[登录] 用户不存在: ${username}`);
       return res.status(401).json({ error: '用户名或密码错误' });
     }
 
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(401).json({ error: '用户名或密码错误' });
-    }
+    try {
+      const validPassword = await bcrypt.compare(password, user.password);
+      if (!validPassword) {
+        console.log(`[登录] 密码错误: ${username}`);
+        return res.status(401).json({ error: '用户名或密码错误' });
+      }
 
-    const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET);
-    res.json({ message: '登录成功', token, userId: user.id });
+      const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET);
+      console.log(`[登录] 登录成功: ${username}`);
+      res.json({ message: '登录成功', token, userId: user.id });
+    } catch (error) {
+      console.error('[登录] 验证密码失败:', error);
+      return res.status(500).json({ error: '服务器错误' });
+    }
   });
 });
 
