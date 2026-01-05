@@ -1,11 +1,7 @@
 import axios from 'axios';
 
-// 自动检测API地址：开发环境使用localhost，生产环境使用相对路径
-const API_BASE_URL = import.meta.env.PROD
-  ? '/api'  // 生产环境使用相对路径（Vercel会处理路由）
-  : (window.location.hostname === 'localhost'
-      ? 'http://localhost:3001/api'
-      : `http://${window.location.hostname}:3001/api`);
+// 始终使用相对路径，由Vite代理或生产环境的反向代理处理
+const API_BASE_URL = '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

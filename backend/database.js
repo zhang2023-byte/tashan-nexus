@@ -1,11 +1,8 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-// 使用环境变量中的数据库路径，如果未设置则使用默认路径
-const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'database.sqlite');
+const dbPath = path.join(__dirname, 'database.sqlite');
 const db = new sqlite3.Database(dbPath);
-
-console.log(`[数据库] 使用数据库路径: ${dbPath}`);
 
 // 初始化数据库表
 db.serialize(() => {
