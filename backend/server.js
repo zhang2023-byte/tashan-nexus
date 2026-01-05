@@ -9,9 +9,15 @@ const db = require('./database');
 const MatchingEngine = require('./matching');
 const hybridMatching = require('./hybrid-matching');
 const embeddingService = require('./embedding-service');
+const { initializeDatabase } = require('./init-db');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// 初始化数据库（创建测试用户）
+initializeDatabase().catch(err => {
+  console.error('[服务器] 数据库初始化失败:', err);
+});
 
 // 中间件
 app.use(cors({
