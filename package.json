@@ -1,17 +1,7 @@
 {
   "name": "tashan-nexus",
   "version": "1.0.0",
-  "description": "他山协会学科交叉合作平台",
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
-  },
-  "keywords": ["collaboration", "academic", "matching"],
-  "author": "",
-  "license": "MIT",
-  "devDependencies": {
-    "concurrently": "^8.2.2"
+    "build": "cd frontend && npm install && npm run build"
   }
 }
