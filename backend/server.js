@@ -404,7 +404,12 @@ hybridMatching.configure({
 
 console.log('[配置] 已启用混合匹配策略: Qwen Embedding + DeepSeek LLM');
 
-// 启动服务器
-app.listen(PORT, () => {
-  console.log(`他山协会服务器运行在 http://localhost:${PORT}`);
-});
+// 启动服务器（仅在非 Vercel 环境）
+if (process.env.VERCEL !== '1') {
+  app.listen(PORT, () => {
+    console.log(`他山协会服务器运行在 http://localhost:${PORT}`);
+  });
+}
+
+// 导出 app 供 Vercel 使用
+module.exports = app;
